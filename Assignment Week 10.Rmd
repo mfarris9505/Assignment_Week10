@@ -1,0 +1,86 @@
+---
+title: "Week 10 Assignment"
+author: "Matthew Farris"
+date: "November 1, 2015"
+output: html_document
+---
+
+For this weeks assignment, we will be working primarily with API's. As an avid fan of movies, I of course picked the Movie Reviews API: 
+
+[Movie API Link](http://developer.nytimes.com/docs/movie_reviews_api/)
+
+As the API's all appear to utilize a URI, it will be interesting to work with. There are 4   basic URI's that are available to us, but the 2 that I will be using for this project are ass follows: 
+
+* Search By Keyword  
+```
+http://api.nytimes.com/svc/movies/{version}/reviews/search[.response_format]?[optional-param1=value1]&[...]&api-key={your-API-key}
+```
+
+* Review and NYT Critics' Picks  
+```
+http://api.nytimes.com/svc/movies/{version}/reviews/{resource-type}[.response_format]?[optional-param1=value1]&[...]&api-key={your-API-key}
+```
+
+As these URIs use a GET request, the primary tool that we can use for this project is the JSONlite package. This can pull the created URL directly using the fromJSON function. 
+```{r}
+library(jsonlite)
+library(stringr)
+library(tidyr)
+```
+
+From here, the easiest way to pull information would be to "build" a URI using the above format. Here is a sample URI that we pulled using the search key "The Martian" 
+
+```{r}
+url<- "http://api.nytimes.com/svc/movies/v2/reviews/search.json?query='The+Martian'&api-key=e2d581c1a5059550bc8711ca7e9bc86a:17:73348668"
+
+url_data <- fromJSON(url)
+data <- url_data$results
+colnames(data)
+```
+
+This shows just a generic pull and the data that it extracts, and the headers that it creates. 
+
+Though the assignment this week appeared to be rather open ended (and truthfully I was a little preturbed by it) I decided to have a little fun, and rather then pull a vast dataset, I create a simple and generic keyword search for this particular API. Furthermore, the data for this particular API is not very useful statstically (I don't really read the NY Times, but I assumed the reviewers gave a "rating", but it turns out they simple list it as a "crtics-pick" or not) I looked the column data, and found the only data I would be particular interested in a query would be The Movie Title, the MPAA rating, critics pick, top 1000s, opening date, and the dvd release date. So, I created a simple function: 
+
+```{r}
+Keyword_Search <- function(keyword){
+  keyword <-unlist(strsplit(toString(keyword)," "))
+  #Loop to create a standard "New_Key" function in the required URL format 
+  new_key <- character(length =0)
+  for(i in 1:length(keyword)){
+    new_key <- paste0(new_key,keyword[i],"+")
+  }
+  str_sub(new_key, -1,-1) <- ""
+  #Cut out URL to for the Query '' left to make Query more restrictive
+  URI_1 <-"http://api.nytimes.com/svc/movies/v2/reviews/search.json?query='"
+  URI_key <-"'&api-key=e2d581c1a5059550bc8711ca7e9bc86a:17:73348668" 
+  
+  # Combining the separate sets into one URL and extracting JSON
+  data<- fromJSON(paste0(URI_1,new_key,URI_key))
+  data_frame<-data$results
+
+  #Cleaning
+  names(data_frame) <- c("a","Movie","c","MPAA_Rating", "Critics_Pick","Thousand_Best","d","e","f","g","h","Opening_Date","Dvd_Release","i","j","k","l","m")
+  
+  data_frame$a <- NULL
+  data_frame$c <- NULL
+  data_frame$d <- NULL
+  data_frame$e <- NULL
+  data_frame$f <- NULL
+  data_frame$g <- NULL
+  data_frame$h <- NULL
+  data_frame$i <- NULL
+  data_frame$j <- NULL
+  data_frame$k <- NULL
+  data_frame$l <- NULL
+  data_frame$m <- NULL
+  data_frame
+}
+Keyword_Search("Apollo")
+Keyword_Search("Saving Private Ryan")
+
+```
+  
+The Query of the API is not the greatest, appreantly it uses an index, and also the "or" function, so any search with multiple words produces multiple results. As it doesn't search exact matches, it tends to pull more results than needed. Fortunately, it does find the most likely matches and list them first. 
+
+Anyway, that is a simple code, I didn't put in any errors or stops for the function (ie. if you put in a non string value). Those will all get an automated error anyway from R console, so they seemed surpurflous. 
